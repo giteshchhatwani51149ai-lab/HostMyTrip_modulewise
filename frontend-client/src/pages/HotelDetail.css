@@ -1,0 +1,109 @@
+.hotel-detail-page { min-height: 100vh; }
+.detail-content { padding: 24px 24px 80px; }
+
+/* Gallery */
+.gallery { display: grid; grid-template-columns: 1fr 120px; gap: 12px; margin-bottom: 40px; }
+.gallery-main { border-radius: var(--radius-lg); overflow: hidden; aspect-ratio: 16/8; }
+.gallery-main-img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-thumbs { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 100%; }
+.gallery-thumb {
+  border-radius: var(--radius-sm);
+  aspect-ratio: 1;
+  object-fit: cover;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: var(--transition);
+  border: 2px solid transparent;
+}
+.gallery-thumb.active, .gallery-thumb:hover { opacity: 1; border-color: var(--primary); }
+
+/* Layout */
+.detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; align-items: flex-start; }
+.detail-left { display: flex; flex-direction: column; gap: 0; }
+
+.detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.detail-star-row { margin-bottom: 8px; }
+.detail-title { font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+.detail-location { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 14px; }
+
+.bookmark-btn-lg {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.bookmark-btn-lg.bookmarked { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: #EF4444; }
+
+.detail-rating-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.detail-review-count { color: var(--text-muted); font-size: 14px; }
+
+.detail-description { color: var(--text-muted); line-height: 1.8; font-size: 15px; margin-bottom: 32px; }
+
+.detail-section { margin-bottom: 40px; }
+.detail-section h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+
+/* Amenities */
+.amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.amenity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Reviews */
+.reviews-list { display: flex; flex-direction: column; gap: 12px; }
+.review-card { padding: 16px 20px; }
+.review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.review-author { font-weight: 600; font-size: 14px; }
+.review-comment { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+/* Rooms Panel */
+.detail-right { position: sticky; top: 80px; }
+.rooms-panel { padding: 24px; }
+.rooms-panel h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.rooms-dates { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+.rooms-list { display: flex; flex-direction: column; gap: 14px; }
+.room-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  gap: 12px;
+  transition: var(--transition);
+}
+.room-card:hover { border-color: var(--border-hover); }
+.room-info { flex: 1; }
+.room-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.room-info p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.room-capacity { margin-top: 4px; font-size: 12px; color: var(--text-dim) !important; }
+.room-price-area { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.room-price { font-size: 20px; font-weight: 700; color: var(--primary); }
+.room-price-unit { font-size: 12px; color: var(--text-dim); }
+.room-total { font-size: 12px; color: var(--text-muted); }
+
+@media (max-width: 1024px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-right { position: static; }
+  .gallery { grid-template-columns: 1fr; }
+  .gallery-thumbs { flex-direction: row; max-height: unset; }
+  .gallery-thumb { width: 80px; flex-shrink: 0; }
+}
