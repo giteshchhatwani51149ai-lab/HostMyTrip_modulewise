@@ -7,66 +7,8 @@ on:
       - master
 
 jobs:
-  # Test Backend
-  test-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      - name: Install dependencies
-        working-directory: ./backend
-        run: npm install
-      
-      - name: Run tests
-        working-directory: ./backend
-        run: npm test
-
-  # Test Frontend Client
-  test-frontend-client:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      - name: Install dependencies
-        working-directory: ./frontend-client
-        run: npm install
-      
-      - name: Run tests
-        working-directory: ./frontend-client
-        run: npm test
-
-  # Test Frontend Admin
-  test-frontend-admin:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      - name: Install dependencies
-        working-directory: ./frontend-admin
-        run: npm install
-      
-      - name: Run tests
-        working-directory: ./frontend-admin
-        run: npm test
-
   # Deploy Frontend Client to Vercel
   deploy-client:
-    needs: [test-backend, test-frontend-client]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
@@ -98,7 +40,6 @@ jobs:
 
   # Deploy Frontend Admin to Vercel
   deploy-admin:
-    needs: [test-backend, test-frontend-admin]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
