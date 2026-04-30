@@ -1,235 +1,430 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bookingsAPI, bookmarksAPI } from '../api';
+import {
+  Calendar, MapPin, Plane, Building2, ChevronRight, ChevronDown, ChevronUp,
+  Users, Plus, Star, Search, Package, ListChecks, Award, Clock,
+  ArrowRight, Sparkles,
+} from 'lucide-react';
+import { bookingsAPI } from '../api';
 import { useAuthStore } from '../store/authStore';
-import { MapPin, Calendar, Users, X, Star, Heart, ChevronRight, AlertCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ReviewModal from '../components/ReviewModal';
 import './Dashboard.css';
 
-const STATUS_BADGE = { confirmed: 'badge-success', cancelled: 'badge-danger', completed: 'badge-primary', pending: 'badge-warning', failed: 'badge-danger' };
-const PAYMENT_BADGE = { paid: 'badge-success', partial: 'badge-warning', pending: 'badge-warning', failed: 'badge-danger' };
+/* ── helpers ──────────────────────────────────────────────────────── */
+const fmtDate = (s) => s
+  ? new Date(s).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  : '—';
 
+const isFlight = (b) => Boolean(
+  b?.flightDetail || b?.airline || b?.pnr || b?.amadeusOfferId || b?.amadeusBookingRef
+);
+
+/** Pulls primary trip-start date out of any booking shape. */
+const tripStart = (b) => {
+  const fd = b.flightDetail;
+  const raw = (fd?.departureDate) || b.departureDate || b.checkIn;
+  return raw ? new Date(raw) : null;
+};
+
+/** "Welcome, {firstName}" — fall back to email local-part, properly cased. */
+const friendlyName = (user) => {
+  if (!user) return 'traveller';
+  if (user.firstName) return user.firstName;
+  if (user.name)      return user.name.split(' ')[0];
+  if (user.email)     return user.email.split('@')[0].split('.')[0]
+                          .replace(/^./, c => c.toUpperCase());
+  return 'traveller';
+};
+
+/** Days remaining (positive) until a trip; null if past. */
+const daysToGo = (date) => {
+  if (!date) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const t = new Date(date); t.setHours(0,0,0,0);
+  const diff = Math.round((t - today) / (1000 * 60 * 60 * 24));
+  return diff;
+};
+
+/* ── Trip card ────────────────────────────────────────────────────── */
+const TripCard = ({ booking, onView, onReview }) => {
+  const flight    = isFlight(booking);
+  const fd        = booking.flightDetail;
+  const date      = tripStart(booking);
+  const days      = daysToGo(date);
+  const isUpcoming = days !== null && days >= 0;
+
+  const title = flight
+    ? `${fd?.origin || booking.origin || '?'} → ${fd?.destination || booking.destination || '?'}`
+    : (booking.displayHotelName || booking.hotel?.name || 'Hotel booking');
+  const sub = flight
+    ? (fd?.airline || booking.airline || 'Flight')
+    : (booking.displayCity || booking.hotel?.city || '');
+
+  const statusClass = booking.status === 'confirmed' ? 'badge-success'
+                    : booking.status === 'pending'   ? 'badge-warning'
+                    : booking.status === 'cancelled' || booking.status === 'failed' ? 'badge-danger'
+                    : 'badge-primary';
+
+  return (
+    <div className="glass" style={{
+      padding: 18, borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 12,
+      border: '1px solid var(--border)', transition: 'var(--transition)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+          background: flight
+            ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))'
+            : 'rgba(255,107,0,0.12)',
+          display: 'grid', placeItems: 'center',
+          color: flight ? '#fff' : 'var(--primary)',
+        }}>
+          {flight ? <Plane size={20}/> : <Building2 size={20}/>}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {title}
+            </h3>
+            <span className={`badge ${statusClass}`} style={{ fontSize: 10, textTransform: 'capitalize' }}>
+              {booking.status}
+            </span>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <MapPin size={11}/> {sub}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Calendar size={12}/> {fmtDate(date)}
+          {!flight && booking.checkOut && ` → ${fmtDate(booking.checkOut)}`}
+        </span>
+        {booking.bookingReference && (
+          <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 600 }}>
+            {booking.bookingReference}
+          </span>
+        )}
+      </div>
+
+      {/* Countdown for upcoming trips */}
+      {isUpcoming && (
+        <div style={{
+          padding: '8px 12px', borderRadius: 8,
+          background: days <= 3 ? 'rgba(255,107,0,0.12)' : 'var(--bg)',
+          border: `1px solid ${days <= 3 ? 'var(--primary)' : 'var(--border)'}`,
+          fontSize: 13, fontWeight: 600,
+          color: days <= 3 ? 'var(--primary)' : 'var(--text)',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <Clock size={13}/>
+          {days === 0 ? 'Today!' : days === 1 ? 'Tomorrow' : `${days} days to go`}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+        <button className="btn btn-secondary btn-sm" onClick={() => onView(booking)} style={{ flex: 1 }}>
+          View Details <ChevronRight size={13}/>
+        </button>
+        {onReview && booking.status === 'confirmed' && !booking.review && !flight && (
+          <button className="btn btn-primary btn-sm" onClick={() => onReview(booking)}>
+            <Star size={13}/> Review
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── Stat card ────────────────────────────────────────────────────── */
+const StatCard = ({ icon, label, value, accent }) => (
+  <div className="glass" style={{ padding: 18, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div style={{
+      width: 44, height: 44, borderRadius: 10,
+      background: accent || 'rgba(255,107,0,0.12)',
+      color: 'var(--primary)',
+      display: 'grid', placeItems: 'center', flexShrink: 0,
+    }}>{icon}</div>
+    <div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{value}</div>
+    </div>
+  </div>
+);
+
+/* ── Quick action tile ────────────────────────────────────────────── */
+const QuickAction = ({ icon, label, onClick }) => (
+  <button onClick={onClick} className="glass quick-action-tile" style={{
+    padding: 18, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+    cursor: 'pointer', border: '1px solid var(--border)',
+    background: 'var(--bg-card)', color: 'var(--text)', fontFamily: 'inherit',
+    fontSize: 14, fontWeight: 600, textAlign: 'left',
+    transition: 'var(--transition)',
+  }}>
+    <div style={{
+      width: 38, height: 38, borderRadius: 10,
+      background: 'rgba(255,107,0,0.12)', color: 'var(--primary)',
+      display: 'grid', placeItems: 'center', flexShrink: 0,
+    }}>{icon}</div>
+    <span style={{ flex: 1 }}>{label}</span>
+    <ArrowRight size={16} color="var(--text-muted)"/>
+  </button>
+);
+
+/* ── Main page ────────────────────────────────────────────────────── */
 export default function Dashboard() {
-  const { user } = useAuthStore();
-  const navigate = useNavigate();
-  const [tab, setTab] = useState('bookings');
-  const [bookings, setBookings] = useState([]);
-  const [bookmarks, setBookmarks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { user }     = useAuthStore();
+  const navigate     = useNavigate();
+  const [bookings, setBookings]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState('');
+  const [pastExpanded, setPastExpanded] = useState(false);
   const [reviewHotelId, setReviewHotelId] = useState(null);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
+  /* fetch */
+  const fetchBookings = () => {
     setLoading(true);
     setError('');
-    try {
-      const [bRes, bmRes] = await Promise.all([bookingsAPI.getMy(), bookmarksAPI.getMy()]);
-      setBookings(bRes.data);
-      setBookmarks(bmRes.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load your bookings. Please refresh or log in again.');
-    } finally {
-      setLoading(false);
+    bookingsAPI.getMySummary()
+      .then(r => setBookings(Array.isArray(r.data) ? r.data : []))
+      .catch(err => {
+        console.error('[Dashboard] /bookings/my failed:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load bookings');
+        setBookings([]);
+      })
+      .finally(() => setLoading(false));
+  };
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { fetchBookings(); }, []);
+
+  /* split into upcoming / past */
+  const { upcoming, past } = useMemo(() => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const u = []; const p = [];
+    for (const b of bookings) {
+      if (b.status === 'cancelled' || b.status === 'failed') {
+        p.push(b); continue;
+      }
+      const d = tripStart(b);
+      if (d && d >= today) u.push(b); else p.push(b);
     }
-  };
+    /* sort upcoming by closest first, past by most-recent first */
+    u.sort((a, b) => (tripStart(a) - tripStart(b)));
+    p.sort((a, b) => (tripStart(b) - tripStart(a)));
+    return { upcoming: u, past: p };
+  }, [bookings]);
 
-  const handleCancel = async (id) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
-    try {
-      await bookingsAPI.cancel(id);
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
-    } catch (err) {
-      alert(err.response?.data?.message || 'Could not cancel booking');
-    }
+  const handleView = (b) => {
+    navigate(`/bookings/${b.id}`);
   };
-
-  const handleRemoveBookmark = async (hotelId) => {
-    try {
-      await bookmarksAPI.toggle(hotelId);
-      setBookmarks(prev => prev.filter(b => b.hotelId !== hotelId));
-    } catch (_) {}
-  };
-
-  const stats = {
-    total: bookings.length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length,
-    spent: bookings.filter(b => b.status !== 'cancelled' && b.status !== 'failed').reduce((s, b) => s + b.paidAmount, 0),
-  };
-
-  const failedBookings = bookings.filter(b => b.paymentStatus === 'failed' || b.status === 'failed');
 
   return (
     <div className="dashboard-page">
       <Navbar />
       <div className="container dashboard-content">
-        <div className="dashboard-header">
-          <div>
-            <h1>My Dashboard</h1>
-            <p className="dashboard-sub">Welcome back, {user?.email?.split('@')[0]}</p>
-          </div>
+
+        {/* ── Welcome ───────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 30, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.02em' }}>
+            Welcome back, {friendlyName(user)}!
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+            Here&apos;s what&apos;s happening with your trips.
+          </p>
         </div>
 
-        {/* Stats */}
-        <div className="stats-grid">
-          {[
-            { label: 'Total Bookings', value: stats.total, icon: '📋' },
-            { label: 'Active Bookings', value: stats.confirmed, icon: '✅' },
-            { label: 'Cancelled', value: stats.cancelled, icon: '❌' },
-            { label: 'Total Spent', value: `₹${stats.spent.toLocaleString()}`, icon: '💰' },
-          ].map(s => (
-            <div key={s.label} className="stat-card glass">
-              <div className="stat-icon">{s.icon}</div>
-              <div>
-                <p className="stat-label">{s.label}</p>
-                <p className="stat-value">{s.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div className="dashboard-tabs">
-          <button className={`dash-tab ${tab === 'bookings' ? 'active' : ''}`} onClick={() => setTab('bookings')}>
-            My Bookings ({bookings.length})
-          </button>
-          <button className={`dash-tab ${tab === 'bookmarks' ? 'active' : ''}`} onClick={() => setTab('bookmarks')}>
-            Saved Hotels ({bookmarks.length})
-          </button>
-        </div>
-
-        {failedBookings.length > 0 && tab === 'bookings' && (
-          <div className="alert alert-danger" style={{ marginBottom: 20, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#EF4444', padding: '14px 18px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <AlertCircle size={20} />
-            <div>
-              <p style={{ fontWeight: 600, margin: 0, fontSize: 14 }}>Payment Failed</p>
-              <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>You have {failedBookings.length} booking(s) with failed or pending payments. Please re-book to secure your reservation.</p>
-            </div>
+        {error && (
+          <div className="alert alert-danger" style={{
+            background: 'rgba(220,38,38,0.10)', border: '1px solid var(--error)',
+            color: 'var(--error)', padding: '12px 16px', borderRadius: 10,
+            marginBottom: 20, fontSize: 13, display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <span><strong>Couldn&apos;t load bookings:</strong> {error}</span>
+            <button onClick={fetchBookings}
+              className="btn btn-sm"
+              style={{ background: 'var(--error)', color: '#fff', border: 'none' }}>
+              Retry
+            </button>
           </div>
         )}
 
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-            <div className="spinner" style={{ width: 36, height: 36 }} />
+        {/* ── Quick stats ──────────────────────────────────────── */}
+        <div style={{
+          display: 'grid', gap: 14, marginBottom: 32,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        }}>
+          <StatCard icon={<Plane size={20}/>}      label="Upcoming trips" value={upcoming.length}/>
+          <StatCard icon={<ListChecks size={20}/>} label="Past trips"     value={past.length}/>
+          <StatCard icon={<Award size={20}/>}      label="Loyalty points" value={user?.loyaltyPoints ?? 0}/>
+        </div>
+
+        {/* ── Section 1: Upcoming Trips (priority) ─────────────── */}
+        <section style={{ marginBottom: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={18} color="var(--primary)"/> Upcoming trips
+            </h2>
+            {upcoming.length > 0 && (
+              <button onClick={() => navigate('/my-bookings')}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--primary)',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                }}>
+                View all <ChevronRight size={14}/>
+              </button>
+            )}
           </div>
-        ) : error ? (
-          <div className="alert alert-danger" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#EF4444', padding: '14px 18px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}>
-            <AlertCircle size={20} />
-            <div>
-              <p style={{ fontWeight: 600, margin: 0, fontSize: 14 }}>Error Loading Bookings</p>
-              <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>{error}</p>
+
+          {loading ? (
+            <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+              {[1,2,3].map(i => (
+                <div key={i} className="glass" style={{ height: 200, borderRadius: 14 }}/>
+              ))}
             </div>
-          </div>
-        ) : tab === 'bookings' ? (
-          <div className="bookings-list">
-            {bookings.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">📋</div>
-                <h3>No bookings yet</h3>
-                <p>Start exploring hotels and make your first booking!</p>
-                <button className="btn btn-primary" onClick={() => navigate('/hotels')}>Explore Hotels</button>
+          ) : upcoming.length === 0 ? (
+            <div className="glass" style={{ padding: 36, borderRadius: 14, textAlign: 'center' }}>
+              <div style={{
+                width: 64, height: 64, margin: '0 auto 14px', borderRadius: '50%',
+                background: 'rgba(255,107,0,0.12)', color: 'var(--primary)',
+                display: 'grid', placeItems: 'center',
+              }}><Plane size={28}/></div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>No upcoming trips</h3>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 18 }}>
+                Ready for your next adventure?
+              </p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={() => navigate('/flights')}>
+                  <Plane size={14}/> Book a flight
+                </button>
+                <button className="btn btn-secondary" onClick={() => navigate('/hotels')}>
+                  <Building2 size={14}/> Find a hotel
+                </button>
               </div>
-            ) : bookings.map(b => (
-              <div key={b.id} className={`booking-card glass ${b.status === 'cancelled' || b.status === 'failed' ? 'cancelled' : ''}`}>
-                <div className="booking-hotel-img-wrap">
-                  <img src={(b.hotel?.images || [])[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300'} alt="" />
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+              {upcoming.slice(0, 6).map(b => (
+                <TripCard key={b.id} booking={b} onView={handleView}/>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ── Section 2: Past Trips (collapsible) ───────────────── */}
+        <section style={{ marginBottom: 36 }}>
+          <button
+            onClick={() => setPastExpanded(e => !e)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', borderRadius: 12,
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'var(--transition)',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 16, fontWeight: 700 }}>
+              <ListChecks size={18} color="var(--primary)"/>
+              Past trips
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
+                ({past.length})
+              </span>
+            </span>
+            {pastExpanded ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}
+          </button>
+
+          {pastExpanded && (
+            <div style={{ marginTop: 14 }}>
+              {past.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
+                  No past trips yet.
                 </div>
-                <div className="booking-info">
-                  <div className="booking-info-top">
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <h3>{b.displayHotelName}</h3>
-                        {b.isLiveBooking && (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '1px 7px', borderRadius: 999 }}>LIVE</span>
-                        )}
-                      </div>
-                      <p className="booking-city"><MapPin size={12} /> {b.displayCity || 'Online Booking'}</p>
-                    </div>
-                    <div className="booking-badges">
-                      <span className={`badge ${STATUS_BADGE[b.status] || 'badge-primary'}`}>{b.status}</span>
-                      <span className={`badge ${PAYMENT_BADGE[b.paymentStatus] || 'badge-primary'}`}>{b.paymentStatus}</span>
-                    </div>
-                  </div>
-                  <div className="booking-meta-row">
-                    <div className="booking-meta-item"><Calendar size={13} /> {b.checkIn} → {b.checkOut}</div>
-                    <div className="booking-meta-item"><Users size={13} /> {b.guests} guest{b.guests > 1 ? 's' : ''}</div>
-                    <div className="booking-meta-item">Room: {b.displayRoomType}</div>
-                  </div>
-                  <div className="booking-footer">
-                    <div>
-                      <p className="booking-amount">Paid: <strong className="payment-paid">₹{b.paidAmount?.toLocaleString()}</strong></p>
-                      {b.paymentStatus === 'partial' && (
-                        <p className="booking-remaining">Remaining: ₹{(b.totalAmount - b.paidAmount).toLocaleString()} at check-in</p>
-                      )}
-                      {b.amadeusBookingRef && b.amadeusBookingRef !== 'MANUAL_CONFIRMATION_REQUIRED' && (
-                        <p style={{ fontSize: 11, color: '#10B981', fontWeight: 700, marginTop: 4, fontFamily: 'monospace', letterSpacing: 1 }}>
-                          PNR: {b.amadeusBookingRef}
-                        </p>
-                      )}
-                    </div>
-                    <div className="booking-actions">
-                      {b.status === 'confirmed' && !b.review && !b.isLiveBooking && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => setReviewHotelId(b.hotelId)}>
-                          <Star size={13} /> Review
-                        </button>
-                      )}
-                      {!b.isLiveBooking && (
-                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/hotels/${b.hotelId}`)}>
-                          View Hotel <ChevronRight size={13} />
-                        </button>
-                      )}
-                      {b.status === 'confirmed' && (
-                        <button className="btn btn-danger btn-sm" onClick={() => handleCancel(b.id)}>
-                          <X size={13} /> Cancel
-                        </button>
-                      )}
-                      {(b.paymentStatus === 'failed' || b.status === 'failed') && (
-                         <div style={{ color: 'var(--danger)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <AlertCircle size={12}/> Failed
-                         </div>
-                      )}
-                    </div>
-                  </div>
+              ) : (
+                <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+                  {past.slice(0, 9).map(b => (
+                    <TripCard
+                      key={b.id}
+                      booking={b}
+                      onView={handleView}
+                      onReview={!isFlight(b) ? (bk) => setReviewHotelId(bk.hotelId) : undefined}
+                    />
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bookmarks-grid">
-            {bookmarks.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">❤️</div>
-                <h3>No saved hotels</h3>
-                <p>Bookmark hotels you love to find them easily later!</p>
-                <button className="btn btn-primary" onClick={() => navigate('/hotels')}>Explore Hotels</button>
-              </div>
-            ) : bookmarks.map(bm => (
-              <div key={bm.id} className="bookmark-card card" onClick={() => navigate(`/hotels/${bm.hotelId}`)}>
-                <div className="bookmark-img-wrap">
-                  <img src={(bm.hotel?.images || [])[0] || ''} alt={bm.hotel?.name} />
-                  <button className="bookmark-remove" onClick={e => { e.stopPropagation(); handleRemoveBookmark(bm.hotelId); }}>
-                    <Heart size={14} fill="#EF4444" color="#EF4444" />
+              )}
+              {past.length > 9 && (
+                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                  <button className="btn btn-secondary" onClick={() => navigate('/my-bookings')}>
+                    View all {past.length} past trips
                   </button>
                 </div>
-                <div className="bookmark-info">
-                  <h3>{bm.hotel?.name}</h3>
-                  <p><MapPin size={12} /> {bm.hotel?.city}</p>
-                  <p className="bookmark-rating">★ {bm.hotel?.rating?.toFixed(1)}</p>
-                </div>
-              </div>
-            ))}
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* ── Section 3: Saved Travelers ────────────────────────── */}
+        <section style={{ marginBottom: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={18} color="var(--primary)"/> Saved travellers
+            </h2>
+            <button onClick={() => navigate('/profile?tab=travellers')}
+              style={{
+                background: 'none', border: 'none', color: 'var(--primary)',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}>
+              Manage <ChevronRight size={14}/>
+            </button>
           </div>
-        )}
+
+          <div className="glass" style={{ padding: 24, borderRadius: 14, textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, margin: '0 auto 12px', borderRadius: '50%',
+              background: 'rgba(255,107,0,0.12)', color: 'var(--primary)',
+              display: 'grid', placeItems: 'center',
+            }}><Users size={24}/></div>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 14 }}>
+              Save frequent travellers to speed up future bookings.
+            </p>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/profile?tab=travellers')}>
+              <Plus size={13}/> Add traveller
+            </button>
+          </div>
+        </section>
+
+        {/* ── Section 4: Quick Actions ──────────────────────────── */}
+        <section>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Quick actions</h2>
+          <div style={{
+            display: 'grid', gap: 12,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          }}>
+            <QuickAction icon={<Plane size={18}/>}    label="Search flights"     onClick={() => navigate('/flights')}/>
+            <QuickAction icon={<Building2 size={18}/>} label="Search hotels"      onClick={() => navigate('/hotels')}/>
+            <QuickAction icon={<Package size={18}/>}   label="Browse packages"    onClick={() => navigate('/packages')}/>
+            <QuickAction icon={<ListChecks size={18}/>} label="View all bookings" onClick={() => navigate('/my-bookings')}/>
+          </div>
+        </section>
       </div>
 
       {reviewHotelId && (
-        <ReviewModal hotelId={reviewHotelId} onClose={() => setReviewHotelId(null)} onSuccess={() => { setReviewHotelId(null); fetchAll(); }} />
+        <ReviewModal
+          hotelId={reviewHotelId}
+          onClose={() => setReviewHotelId(null)}
+          onSuccess={() => { setReviewHotelId(null); fetchBookings(); }}
+        />
       )}
+
+      <style>{`
+        .quick-action-tile:hover {
+          border-color: var(--primary) !important;
+          transform: translateY(-1px);
+        }
+      `}</style>
     </div>
   );
 }

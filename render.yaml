@@ -1,0 +1,105 @@
+# Render.com Blueprint - Deploy HostMyTrip to Production
+# Go to: https://dashboard.render.com/blueprints → New Blueprint Instance → Connect this repo
+
+services:
+  # PostgreSQL Database
+  - type: psql
+    name: hostmytrip-db
+    plan: starter  # $7/month - upgrade to pro for production
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+
+  # Backend API Server
+  - type: web
+    name: hostmytrip-api
+    runtime: node
+    plan: starter  # $7/month - auto-scales with traffic
+    buildCommand: |
+      cd backend && npm ci && npm run build 2>/dev/null || tsc
+    startCommand: cd backend && node dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      # Auto-injected from PostgreSQL service above
+      - key: DB_HOST
+        fromDatabase:
+          name: hostmytrip-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: hostmytrip-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: hostmytrip-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: hostmytrip-db
+          property: user
+      - key: DB_PASS
+        fromDatabase:
+          name: hostmytrip-db
+          property: password
+
+      # App Configuration (set manually in Render dashboard after first deploy)
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true  # Auto-generates secure random string
+      - key: FRONTEND_URL
+        value: https://hostmytrip.vercel.app  # Update after deploying frontend
+      - key: CLIENT_URL
+        value: https://hostmytrip.vercel.app
+      - key: ADMIN_URL
+        value: https://hostmytrip-admin.vercel.app
+
+      # Email (Gmail SMTP - use App Password)
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false  # Set manually in dashboard
+      - key: SMTP_PASS
+        sync: false  # Set manually in dashboard (App Password)
+      - key: EMAIL_FROM
+        sync: false
+
+      # Payment Gateways (set manually)
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_SECRET
+        sync: false
+      - key: PAYPAL_API_URL
+        value: https://api-m.sandbox.paypal.com  # Change to live for production
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+
+      # Third-party APIs (set manually)
+      - key: SERPAPI_KEY
+        sync: false
+      - key: AMADEUS_CLIENT_ID
+        sync: false
+      - key: AMADEUS_CLIENT_SECRET
+        sync: false
+      - key: TRAVELPAYOUTS_TOKEN
+        sync: false
+      - key: KIWI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        value: https://hostmytrip-api.onrender.com/api/auth/google/callback
+
+      # Security
+      - key: CRON_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+
+    autoDeploy: true  # Deploy on every push to main branch

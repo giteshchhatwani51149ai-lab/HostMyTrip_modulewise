@@ -1,0 +1,373 @@
+/* ── Wrapper ─────────────────────────────────────────────────── */
+.dpi-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* ── Trigger button ─────────────────────────────────────────── */
+.dpi-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border, rgba(255,255,255,0.12));
+  background: var(--bg-input, rgba(255,255,255,0.05));
+  color: var(--text, #f1f5f9);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  text-align: left;
+}
+
+.dpi-trigger:hover {
+  border-color: var(--primary, #f97316);
+}
+
+.dpi-trigger-open {
+  border-color: var(--primary, #f97316);
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+}
+
+.dpi-trigger-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+}
+
+.dpi-icon {
+  color: var(--primary, #f97316);
+  flex-shrink: 0;
+}
+
+.dpi-value {
+  flex: 1;
+  font-weight: 600;
+}
+
+.dpi-placeholder {
+  color: var(--text-muted, #94a3b8);
+  font-weight: 400;
+}
+
+.dpi-clear {
+  color: var(--text-muted, #94a3b8);
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: color 0.15s;
+}
+.dpi-clear:hover { color: #ef4444; }
+
+.dpi-chevron {
+  color: var(--text-muted, #94a3b8);
+  flex-shrink: 0;
+  transition: transform 0.18s;
+}
+
+.dpi-trigger-open .dpi-chevron {
+  transform: rotate(90deg);
+}
+
+/* ── Popover ────────────────────────────────────────────────── */
+.dpi-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 9999;
+  background: var(--bg-card, #1e293b);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 16px;
+  padding: 10px 12px 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.3);
+  animation: dpi-in 0.18s ease;
+  box-sizing: border-box;
+}
+
+@keyframes dpi-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Override react-day-picker styles ───────────────────────── */
+.dpi-popover .rdp-root {
+  --rdp-accent-color: var(--primary, #f97316);
+  --rdp-accent-background-color: rgba(249,115,22,0.15);
+  --rdp-background-color: transparent;
+  --rdp-selected-border: none;
+  --rdp-range_start-color: #fff;
+  --rdp-range_end-color: #fff;
+  --rdp-color: var(--text, #f1f5f9);
+  --rdp-muted-color: var(--text-muted, #64748b);
+  --rdp-disabled-opacity: 0.3;
+  --rdp-today-color: var(--primary, #f97316);
+  --rdp-nav-height: 32px;
+  --rdp-chevron-disabled-opacity: 0.25;
+  font-family: inherit;
+  font-size: 13px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.dpi-popover .rdp-month {
+  width: 100%;
+}
+
+.dpi-popover .rdp-month_grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.dpi-popover .rdp-week {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dpi-popover .rdp-day {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.dpi-popover .rdp-weekdays {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dpi-popover .rdp-weekday {
+  flex: 1;
+  text-align: center;
+}
+
+.dpi-popover .rdp-month_caption {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #f1f5f9);
+  padding: 8px 4px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dpi-popover .rdp-weekdays {
+  color: var(--text-muted, #64748b);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dpi-popover .rdp-day_button {
+  width: 100%;
+  max-width: 44px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text, #f1f5f9);
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dpi-popover .rdp-day_button:hover:not([disabled]) {
+  background: rgba(249,115,22,0.12);
+  color: var(--primary, #f97316);
+  transform: scale(1.05);
+}
+
+.dpi-popover .rdp-selected .rdp-day_button {
+  background: var(--primary, #f97316) !important;
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(249,115,22,0.45);
+}
+
+.dpi-popover .rdp-today .rdp-day_button {
+  color: var(--primary, #f97316);
+  font-weight: 700;
+}
+
+.dpi-popover .rdp-disabled .rdp-day_button {
+  cursor: not-allowed;
+  opacity: 0.25;
+}
+
+.dpi-popover .rdp-outside .rdp-day_button {
+  opacity: 0.25;
+}
+
+/* Nav buttons */
+.dpi-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  background: var(--bg-elevated, rgba(255,255,255,0.06));
+  color: var(--text, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.dpi-nav-btn:hover {
+  background: rgba(249,115,22,0.15);
+  border-color: var(--primary, #f97316);
+  color: var(--primary, #f97316);
+}
+
+/* Caption / nav row */
+.dpi-popover .rdp-nav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ── Custom caption ─────────────────────────────────────────── */
+.dpi-caption {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 2px 10px;
+  width: 100%;
+}
+
+/* Row 1: arrows + month pills */
+.dpi-caption-row1 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Month pill strip — scrollable */
+.dpi-month-strip {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+.dpi-month-strip::-webkit-scrollbar { display: none; }
+
+.dpi-month-pill {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 20px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.dpi-month-pill:hover {
+  background: rgba(249,115,22,0.1);
+  color: var(--primary, #f97316);
+  border-color: rgba(249,115,22,0.3);
+}
+.dpi-month-active {
+  background: var(--primary, #f97316) !important;
+  color: #fff !important;
+  border-color: var(--primary, #f97316) !important;
+  box-shadow: 0 2px 10px rgba(249,115,22,0.35);
+}
+
+/* Row 2: year badge */
+.dpi-year-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 auto;
+  padding: 5px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border, rgba(0,0,0,0.1));
+  background: var(--bg-2, #f8fafc);
+  color: var(--text, #1e293b);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.03em;
+}
+.dpi-year-badge:hover {
+  border-color: var(--primary, #f97316);
+  color: var(--primary, #f97316);
+  background: rgba(249,115,22,0.06);
+}
+.dpi-year-chevron {
+  transition: transform 0.2s;
+  opacity: 0.5;
+}
+.dpi-year-chevron-open {
+  transform: rotate(90deg);
+  opacity: 1;
+  color: var(--primary, #f97316);
+}
+
+/* Year panel overlay */
+.dpi-year-panel {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  z-index: 20;
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  padding: 10px 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(249,115,22,0.3) transparent;
+}
+.dpi-year-panel::-webkit-scrollbar { width: 4px; }
+.dpi-year-panel::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.3); border-radius: 4px; }
+
+.dpi-year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.dpi-year-item {
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+.dpi-year-item:hover {
+  background: rgba(249,115,22,0.1);
+  color: var(--primary, #f97316);
+}
+.dpi-year-active {
+  background: var(--primary, #f97316) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(249,115,22,0.4);
+}

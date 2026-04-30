@@ -23,17 +23,40 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  signup: async (email, password) => {
+  signup: async (payload, passwordArg) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await authAPI.signup({ email, password, role: 'customer' });
-      set({ isLoading: false });
+      // Support both old (email, password) and new ({email, password, name}) signatures
+      const data = typeof payload === 'string'
+        ? { email: payload, password: passwordArg }
+        : payload;
+      const res = await authAPI.signup(data);
+      const { token, user } = res.data;
+      // Auto-login if backend returns token (new OTP-verified flow)
+      if (token && user) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        set({ user, token, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
       return { success: true, ...res.data };
     } catch (err) {
       const msg = err.response?.data?.message || 'Signup failed';
       set({ isLoading: false, error: msg });
       return { success: false, error: msg };
     }
+  },
+
+  loginWithToken: async (token) => {
+    localStorage.setItem('token', token);
+    set({ token });
+    try {
+      const res = await authAPI.me();
+      const user = res.data.user;
+      localStorage.setItem('user', JSON.stringify(user));
+      set({ user });
+    } catch (e) { console.error('Failed to fetch user after OAuth:', e); }
   },
 
   logout: () => {

@@ -19,12 +19,12 @@ export default function AdminLogin() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-      background: 'radial-gradient(ellipse at 30% 20%, rgba(14,165,233,0.08) 0%, transparent 70%), var(--bg)'
+      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,107,0,0.10) 0%, transparent 70%), var(--bg)'
     }}>
       <div className="glass animate-in" style={{ width: '100%', maxWidth: 420, padding: 40 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
-            width: 60, height: 60, background: 'linear-gradient(135deg, var(--primary), #3B82F6)',
+            width: 60, height: 60, background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
             borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px', fontSize: 22, fontWeight: 800, color: 'white'
           }}>HMT</div>
@@ -38,23 +38,21 @@ export default function AdminLogin() {
           </div>
         )}
 
-        <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <form onSubmit={handle} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input className="form-input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@hostmytrip.com" />
+            <input className="form-input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@hostmytrip.com" autoComplete="new-email" />
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input className="form-input" type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
+            <input className="form-input" type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
           </div>
           <button type="submit" className="btn btn-primary" disabled={isLoading} style={{ width: '100%', padding: '13px 0', marginTop: 8, fontSize: 15 }}>
             {isLoading ? <><div className="spinner" style={{ width: 18, height: 18 }} /> Authenticating...</> : 'Sign In'}
           </button>
         </form>
 
-        <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text-dim)', textAlign: 'center' }}>
-          Demo: admin@hostmytrip.com / Admin@123
-        </p>
+
       </div>
     </div>
   );

@@ -1,0 +1,172 @@
+.fc-page { min-height: 100vh; background: var(--bg); }
+.fc-wrap  { padding: 28px 16px 60px; max-width: 1100px; margin: 0 auto; }
+
+/* ── Steps ── */
+.fc-steps {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-bottom: 32px;
+}
+.fc-step { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 90px; }
+.fc-step-circle {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  background: var(--bg-2); border: 2px solid var(--border); color: var(--text-muted);
+}
+.fc-step.active .fc-step-circle { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(255,107,0,0.15); }
+.fc-step.done   .fc-step-circle { background: #10b981; border-color: #10b981; color: #fff; }
+.fc-step-label  { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+.fc-step.active .fc-step-label { color: var(--primary); font-weight: 700; }
+.fc-step.done   .fc-step-label { color: #10b981; }
+.fc-step-line { flex: 1; height: 2px; background: var(--border); margin-bottom: 18px; min-width: 40px; }
+.fc-step-line.done { background: #10b981; }
+
+/* ── Grid ── */
+.fc-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.fc-left  { min-width: 0; }
+.fc-right { align-self: start; position: sticky; top: 84px; }
+
+/* ── Card ── */
+.fc-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; margin-bottom: 16px;
+}
+.fc-card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px;
+}
+.fc-card-title-row {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.fc-edit-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--primary);
+  background: rgba(255,107,0,0.08); border: 1px solid rgba(255,107,0,0.2);
+  padding: 4px 10px; border-radius: 6px; cursor: pointer;
+}
+.fc-edit-btn:hover { background: rgba(255,107,0,0.15); }
+
+/* ── Flight summary ── */
+.fc-flight-summary { display: flex; gap: 14px; align-items: flex-start; }
+.fc-logo { width: 50px; height: 25px; object-fit: contain; }
+.fc-flight-info { flex: 1; }
+.fc-flight-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.fc-fcode { font-size: 11px; color: var(--text-dim); margin-left: 6px; }
+.fc-route-row { display: flex; align-items: center; gap: 10px; }
+.fc-endpoint { text-align: center; flex: 1; }
+.fc-big-time { font-size: 22px; font-weight: 800; color: var(--text); }
+.fc-iata { font-size: 13px; font-weight: 700; color: var(--primary); margin: 2px 0; }
+.fc-date { font-size: 11px; color: var(--text-dim); }
+.fc-mid { flex: 1; text-align: center; }
+.fc-dur { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+.fc-line-wrap { display: flex; align-items: center; justify-content: center; gap: 3px; color: var(--primary); }
+.fc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+.fc-dash { flex: 1; height: 1px; background: var(--border); }
+.fc-stop-txt { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+/* ── Passengers ── */
+.fc-pax-list { display: flex; flex-direction: column; gap: 10px; }
+.fc-pax-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px; background: var(--bg-2); border-radius: 8px;
+}
+.fc-pax-num {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--primary);
+  color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.fc-pax-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.fc-pax-meta { display: flex; gap: 10px; font-size: 11px; color: var(--text-dim); margin-top: 3px; flex-wrap: wrap; }
+.fc-pax-type { padding: 1px 7px; border-radius: 10px; font-weight: 600; font-size: 10px; }
+.fc-type-adult  { background: rgba(255,107,0,0.1); color: var(--primary); }
+.fc-type-child  { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.fc-type-infant { background: rgba(16,185,129,0.1); color: #10b981; }
+
+/* ── Contact ── */
+.fc-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.fc-field { display: flex; flex-direction: column; gap: 4px; }
+.fc-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.fc-input-wrap { position: relative; }
+.fc-input-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+.fc-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 12px 9px 32px; font-size: 13px; color: var(--text); font-family: inherit;
+  outline: none; transition: border-color 0.2s;
+}
+.fc-input:focus { border-color: var(--primary); }
+.fc-readonly {
+  padding: 9px 12px; border-radius: 8px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  font-size: 13px; color: var(--text-muted); font-family: inherit;
+}
+.fc-whatsapp-opt {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--text-muted); cursor: pointer; margin-top: 4px;
+}
+.fc-whatsapp-opt input { accent-color: #25D366; }
+
+/* ── Fare ── */
+.fc-fare-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.fc-fare-table td { padding: 7px 0; font-size: 13px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.fc-fare-table td:last-child { text-align: right; font-weight: 600; color: var(--text); }
+.fc-fare-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0 8px; border-top: 2px solid var(--border);
+  font-size: 14px; font-weight: 700; color: var(--text);
+}
+.fc-total-num { font-size: 22px; font-weight: 800; color: var(--primary); }
+.fc-fare-note { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+/* ── T&C ── */
+.fc-tc-toggle {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  background: none; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  padding: 0; margin-bottom: 10px;
+}
+.fc-tc-toggle svg:last-child { margin-left: auto; color: var(--text-dim); }
+.fc-tc-body { font-size: 12px; color: var(--text-muted); line-height: 1.7; margin-bottom: 12px; }
+.fc-tc-body p { margin: 3px 0; }
+.fc-tc-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-muted); cursor: pointer;
+}
+.fc-tc-check input { accent-color: var(--primary); width: 15px; height: 15px; }
+
+/* ── Error ── */
+.fc-error {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  color: #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* ── Proceed button ── */
+.fc-proceed-btn {
+  width: 100%; padding: 14px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 800; cursor: not-allowed;
+  background: var(--bg-2); color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.2s; margin-bottom: 10px;
+}
+.fc-proceed-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff; cursor: pointer; box-shadow: 0 4px 18px var(--primary-glow);
+}
+.fc-proceed-btn.active:hover { transform: translateY(-1px); }
+.fc-spinner {
+  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.fc-secure-note {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 11px; color: var(--text-dim);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .fc-grid { grid-template-columns: 1fr; }
+  .fc-right { position: static; }
+  .fc-contact-grid { grid-template-columns: 1fr; }
+}

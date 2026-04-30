@@ -1,0 +1,75 @@
+.fb-page { min-height: 100vh; background: var(--bg); }
+
+/* ── Summary bar ── */
+.fb-summary-bar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+  position: sticky;
+  top: 64px;
+  z-index: 10;
+}
+.fb-summary-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.fb-back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: 8px;
+  padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: var(--transition);
+}
+.fb-back-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+.fb-flight-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 12px;
+}
+.fb-airline-logo { width: 40px; height: 20px; object-fit: contain; }
+.fb-airline-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.fb-code-badge {
+  font-size: 11px; color: var(--text-dim);
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 1px 6px; border-radius: 4px;
+}
+
+.fb-route {
+  display: flex; align-items: center; gap: 12px;
+  flex: 1; justify-content: center;
+}
+.fb-city { display: flex; flex-direction: column; align-items: center; }
+.fb-time { font-size: 16px; font-weight: 800; color: var(--text); }
+.fb-iata { font-size: 12px; color: var(--primary); font-weight: 700; }
+.fb-route-mid {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: var(--text-dim); font-size: 11px;
+}
+.fb-dur { font-weight: 600; }
+.fb-stops { font-size: 10px; }
+
+.fb-date-pax {
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 12px; color: var(--text-muted);
+  align-items: flex-end;
+}
+
+.fb-price-pill {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff; font-size: 16px; font-weight: 800;
+  padding: 8px 16px; border-radius: 10px;
+  white-space: nowrap;
+}
+.fb-per-pax { font-size: 10px; font-weight: 500; opacity: 0.85; margin-left: 4px; }
+
+/* ── Body ── */
+.fb-body { padding: 32px 16px 60px; }
+
+@media (max-width: 700px) {
+  .fb-summary-inner { gap: 10px; }
+  .fb-route { flex: 1 1 100%; order: 3; }
+  .fb-price-pill { font-size: 14px; padding: 6px 12px; }
+}

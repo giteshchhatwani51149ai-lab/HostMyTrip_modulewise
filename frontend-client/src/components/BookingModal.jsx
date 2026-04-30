@@ -2,23 +2,34 @@ import React, { useState } from 'react';
 import { bookingsAPI } from '../api';
 import { X, CreditCard, Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { useAuthStore } from '../store/authStore';
 import './Modal.css';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
 // PayPalScriptProvider wraps the whole modal so the script loads early
 export default function BookingModal({ hotel, room, checkIn, checkOut, guests, nights, onClose, onSuccess, isLive = false }) {
+  const { user } = useAuthStore();
+  const isCorporate = ['corporate_admin', 'corporate_employee'].includes(user?.role);
+  if (isCorporate) {
+    return (
+      <BookingModalInner
+        hotel={hotel} room={room} checkIn={checkIn} checkOut={checkOut}
+        guests={guests} nights={nights} onClose={onClose} onSuccess={onSuccess} isLive={isLive} isCorporate={isCorporate} role={user?.role}
+      />
+    );
+  }
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'USD', intent: 'capture' }}>
       <BookingModalInner
         hotel={hotel} room={room} checkIn={checkIn} checkOut={checkOut}
-        guests={guests} nights={nights} onClose={onClose} onSuccess={onSuccess} isLive={isLive}
+        guests={guests} nights={nights} onClose={onClose} onSuccess={onSuccess} isLive={isLive} isCorporate={false} role={user?.role}
       />
     </PayPalScriptProvider>
   );
 }
 
-function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onClose, onSuccess, isLive }) {
+function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onClose, onSuccess, isLive, isCorporate, role }) {
   const [paymentType, setPaymentType] = useState('full');
   const [guestName, setGuestName]     = useState('');
   const [guestEmail, setGuestEmail]   = useState('');
@@ -43,6 +54,34 @@ function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onC
     }
     setError('');
     setPaymentStep(true);
+  };
+
+  const handleCorporateSubmit = async () => {
+    if (!guestName.trim() || !guestEmail.trim()) {
+      setError('Guest name and email are required.');
+      return;
+    }
+    setError('');
+    try {
+      const res = await bookingsAPI.create({
+        roomId: room.id,
+        hotelId: hotel.id,
+        checkIn, checkOut, guests, paymentType: 'full',
+        guestName, guestEmail, guestPhone,
+        isLive: isLive || false,
+        liveHotelName: isLive ? hotel.name : undefined,
+        liveRoomType: isLive ? room.type : undefined,
+        livePricePerNight: isLive ? room.pricePerNight : undefined,
+        liveCity: isLive ? hotel.city : undefined,
+        amadeusOfferId: room?.amadeusOfferId || undefined,
+      });
+      const msg = res.data?.message || (role === 'corporate_employee' ? 'Booking request sent for approval.' : 'Corporate booking confirmed.');
+      setSuccess(true);
+      setError(msg);
+      setTimeout(() => onSuccess(), 1500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not submit booking.');
+    }
   };
 
   /**
@@ -129,7 +168,11 @@ function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onC
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <CheckCircle2 size={56} color="var(--success)" style={{ margin: '0 auto 16px' }} />
             <h3>Booking Confirmed! 🎉</h3>
-            <p style={{ color: 'var(--text-muted)' }}>Your PayPal payment was captured and your booking is confirmed.</p>
+            <p style={{ color: 'var(--text-muted)' }}>
+              {isCorporate
+                ? (role === 'corporate_employee' ? 'Booking request submitted. Waiting for corporate admin approval.' : 'Corporate credit booking confirmed.')
+                : 'Your PayPal payment was captured and your booking is confirmed.'}
+            </p>
             {bookingRef && bookingRef !== 'MANUAL_CONFIRMATION_REQUIRED' && (
               <div style={{ marginTop: 16, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '12px 20px' }}>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Amadeus Booking Reference (PNR)</p>
@@ -146,7 +189,7 @@ function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onC
             <p style={{ color: 'var(--text-muted)' }}>Capturing your payment…</p>
           </div>
 
-        ) : paymentStep ? (
+        ) : paymentStep && !isCorporate ? (
           /* ── PayPal Payment Step ── */
           <div style={{ padding: '0 4px' }}>
             {/* Booking summary strip */}
@@ -204,7 +247,9 @@ function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onC
 
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ fontSize: 16, marginBottom: 12 }}>Payment Option</h3>
-              <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr' }}>
+              {isCorporate ? (
+                <div className="alert alert-success">Corporate credit mode: this booking will not use PayPal.</div>
+              ) : <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr' }}>
                 <div
                   className={`payment-card glass ${paymentType === 'full' ? 'selected' : ''}`}
                   onClick={() => setPaymentType('full')}
@@ -229,7 +274,7 @@ function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onC
                   <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>₹{chargeAmount.toLocaleString()}</p>
                   <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Pay 30% to lock price</p>
                 </div>
-              </div>
+              </div>}
             </div>
 
             <div style={{ marginBottom: 20 }}>
@@ -246,11 +291,17 @@ function BookingModalInner({ hotel, room, checkIn, checkOut, guests, nights, onC
             <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Charge today</p>
-                <p style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>₹{chargeAmount.toLocaleString()}</p>
+                <p style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>₹{(isCorporate ? totalAmount : chargeAmount).toLocaleString()}</p>
               </div>
-              <button className="btn btn-primary btn-lg" onClick={handleProceed}>
-                Proceed to Pay →
-              </button>
+              {isCorporate ? (
+                <button className="btn btn-primary btn-lg" onClick={handleCorporateSubmit}>
+                  {role === 'corporate_employee' ? 'Send For Approval' : 'Book With Corporate Credit'}
+                </button>
+              ) : (
+                <button className="btn btn-primary btn-lg" onClick={handleProceed}>
+                  Proceed to Pay →
+                </button>
+              )}
             </div>
           </>
         )}

@@ -2,8 +2,9 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { Hotel, Room, Review, Setting } from '../models';
 import { User } from '../models/User';
-import { searchHotelsLive } from '../services/serpApiService';
+import { searchHotelsLive, SerpHotel } from '../services/serpApiService';
 import { searchAmadeusHotels } from '../services/amadeusService';
+import { getEffectiveMargin, calculatePriceWithMargin, saveLivePrice } from '../utils/settingsCache';
 
 // Safe JSON parse helper
 function safeParseJson(val: any, fallback: any = []) {
@@ -14,6 +15,7 @@ function safeParseJson(val: any, fallback: any = []) {
  * GET /api/hotels/search?city=Mumbai&checkIn=2026-05-01&checkOut=2026-05-03&guests=2
  * Uses SerpApi Google Hotels live data as primary source.
  * Falls back to DB data if SerpApi fails.
+ * Applies margin percentage to live API prices and saves actual prices for audit.
  */
 export const searchHotels = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -24,40 +26,65 @@ export const searchHotels = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // --- Fetch Margin ---
-    let marginPercent = 10; // Default 10%
-    try {
-      const marginSetting = await Setting.findByPk('hotel_margin_percent');
-      if (marginSetting) marginPercent = Number(marginSetting.val) || 0;
-    } catch (e) {}
-    const marginMultiplier = 1 + (marginPercent / 100);
+    const searchParams = {
+      city: String(city),
+      checkIn: checkIn ? String(checkIn) : undefined,
+      checkOut: checkOut ? String(checkOut) : undefined,
+      guests: Number(guests),
+    };
 
+    // --- Fetch Effective Margin based on user (corporate or end-user) ---
+    const userId = (req as any).user?.id;
+    const margin = await getEffectiveMargin(userId, 'hotel');
 
     // --- Try SerpApi live data first ---
     try {
       console.log(`🔍 Searching live hotels for: ${city}`);
-      const liveHotels = await searchHotelsLive({
-        city: String(city),
-        checkIn: checkIn ? String(checkIn) : undefined,
-        checkOut: checkOut ? String(checkOut) : undefined,
-        guests: Number(guests),
-      });
+      const liveHotels = await searchHotelsLive(searchParams);
 
       if (liveHotels.length > 0) {
         console.log(`✅ SerpApi returned ${liveHotels.length} live hotels`);
-        
-        // Apply Margin to Live Hotels
-        const marginedLive = liveHotels.map(h => {
-          h.minPrice = Math.ceil(h.minPrice * marginMultiplier);
-          if (h.rooms) {
-            h.rooms = h.rooms.map((r: any) => ({
+
+        // Apply Margin to Live Hotels and save actual prices
+        const marginedLive = await Promise.all(liveHotels.map(async (h) => {
+          const actualMinPrice = h.minPrice;
+          const { finalPrice: finalMinPrice, marginApplied } = calculatePriceWithMargin(actualMinPrice, margin);
+
+          // Save actual price with margin to LivePrice table (fire and forget)
+          saveLivePrice({
+            type: 'hotel',
+            externalId: h.serpApiId || `serp-${h.id}`,
+            source: 'serpapi',
+            searchParams,
+            actualPrice: actualMinPrice,
+            marginPercent: margin.method === 'percent' ? margin.percent : 0,
+            currency: 'INR',
+            ttlMinutes: 60,
+          }).catch(err => console.error('Failed to save live price:', err));
+
+          // Apply margin to rooms
+          const marginedRooms = h.rooms ? h.rooms.map((r: any) => {
+            const actualRoomPrice = r.pricePerNight;
+            const { finalPrice: finalRoomPrice, marginApplied: roomMarginApplied } = calculatePriceWithMargin(actualRoomPrice, margin);
+            return {
               ...r,
-              pricePerNight: Math.ceil(r.pricePerNight * marginMultiplier)
-            }));
-          }
-          return h;
-        });
-        
+              actualPrice: actualRoomPrice,
+              pricePerNight: finalRoomPrice,
+              marginApplied: roomMarginApplied,
+            };
+          }) : [];
+
+          return {
+            ...h,
+            actualMinPrice,
+            minPrice: finalMinPrice,
+            marginApplied,
+            rooms: marginedRooms,
+            marginType: margin.type,
+            marginMethod: margin.method,
+          };
+        }));
+
         res.status(200).json(marginedLive);
         return;
       }
@@ -89,13 +116,21 @@ export const searchHotels = async (req: Request, res: Response): Promise<void> =
       const h = hotel.toJSON();
       h.images = safeParseJson(h.images, []);
       h.amenities = safeParseJson(h.amenities, []);
-      h.rooms = (h.rooms || []).map((r: any) => ({ 
-        ...r, 
-        images: safeParseJson(r.images, []),
-        pricePerNight: Math.ceil(r.pricePerNight * marginMultiplier)
-      }));
+      h.rooms = (h.rooms || []).map((r: any) => {
+        const actualPrice = r.pricePerNight;
+        const { finalPrice, marginApplied } = calculatePriceWithMargin(actualPrice, margin);
+        return {
+          ...r,
+          images: safeParseJson(r.images, []),
+          actualPrice,
+          pricePerNight: finalPrice,
+          marginApplied,
+        };
+      });
       h.minPrice = h.rooms.length > 0 ? Math.min(...h.rooms.map((r: any) => r.pricePerNight)) : 0;
       h.source = 'db';
+      h.marginType = margin.type;
+      h.marginMethod = margin.method;
       return h;
     });
 
@@ -124,13 +159,9 @@ export const getHotelById = async (req: Request, res: Response): Promise<void> =
       ],
     });
 
-    let marginPercent = 10;
-    try {
-      const marginSetting = await Setting.findByPk('hotel_margin_percent');
-      if (marginSetting) marginPercent = Number(marginSetting.val) || 0;
-    } catch (e) {}
-    const marginMultiplier = 1 + (marginPercent / 100);
-
+    // Get effective margin based on user
+    const userId = (req as any).user?.id;
+    const margin = await getEffectiveMargin(userId, 'hotel');
 
     if (!hotel) {
       res.status(404).json({ message: 'Hotel not found' });
@@ -140,11 +171,19 @@ export const getHotelById = async (req: Request, res: Response): Promise<void> =
     const h = hotel.toJSON() as any;
     h.images = safeParseJson(h.images, []);
     h.amenities = safeParseJson(h.amenities, []);
-    h.rooms = (h.rooms || []).map((r: any) => ({ 
-      ...r, 
-      images: safeParseJson(r.images, []),
-      pricePerNight: Math.ceil(r.pricePerNight * marginMultiplier)
-    }));
+    h.rooms = (h.rooms || []).map((r: any) => {
+      const actualPrice = r.pricePerNight;
+      const { finalPrice, marginApplied } = calculatePriceWithMargin(actualPrice, margin);
+      return {
+        ...r,
+        images: safeParseJson(r.images, []),
+        actualPrice,
+        pricePerNight: finalPrice,
+        marginApplied,
+      };
+    });
+    h.marginType = margin.type;
+    h.marginMethod = margin.method;
 
     res.status(200).json(h);
   } catch (error) {
@@ -165,24 +204,28 @@ export const getAllHotels = async (req: Request, res: Response): Promise<void> =
       order: [['rating', 'DESC']],
     });
 
-    let marginPercent = 10;
-    try {
-      const marginSetting = await Setting.findByPk('hotel_margin_percent');
-      if (marginSetting) marginPercent = Number(marginSetting.val) || 0;
-    } catch (e) {}
-    const marginMultiplier = 1 + (marginPercent / 100);
-
+    // Get effective margin based on user
+    const userId = (req as any).user?.id;
+    const margin = await getEffectiveMargin(userId, 'hotel');
 
     const enriched = (hotels as any[]).map((hotel) => {
       const h = hotel.toJSON();
       h.images = safeParseJson(h.images, []);
       h.amenities = safeParseJson(h.amenities, []);
-      h.rooms = (h.rooms || []).map((r: any) => ({ 
-        ...r, 
-        images: safeParseJson(r.images, []),
-        pricePerNight: Math.ceil(r.pricePerNight * marginMultiplier)
-      }));
+      h.rooms = (h.rooms || []).map((r: any) => {
+        const actualPrice = r.pricePerNight;
+        const { finalPrice, marginApplied } = calculatePriceWithMargin(actualPrice, margin);
+        return {
+          ...r,
+          images: safeParseJson(r.images, []),
+          actualPrice,
+          pricePerNight: finalPrice,
+          marginApplied,
+        };
+      });
       h.minPrice = h.rooms.length > 0 ? Math.min(...h.rooms.map((r: any) => r.pricePerNight)) : 0;
+      h.marginType = margin.type;
+      h.marginMethod = margin.method;
       return h;
     });
 
@@ -197,6 +240,7 @@ export const getAllHotels = async (req: Request, res: Response): Promise<void> =
  * GET /api/hotels/amadeus/search?city=Paris&checkIn=2026-06-01&checkOut=2026-06-03&guests=2
  * Searches real hotel inventory + pricing via Amadeus APIs.
  * Falls back gracefully if Amadeus keys are not configured.
+ * Applies margin percentage and saves actual prices for audit.
  */
 export const searchHotelsAmadeus = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -211,29 +255,54 @@ export const searchHotelsAmadeus = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Apply margin
-    let marginPercent = 10;
-    try {
-      const marginSetting = await Setting.findByPk('hotel_margin_percent');
-      if (marginSetting) marginPercent = Number(marginSetting.val) || 0;
-    } catch (e) {}
-    const marginMultiplier = 1 + (marginPercent / 100);
-
-    const hotels = await searchAmadeusHotels({
-      city:     String(city),
-      checkIn:  String(checkIn),
+    const searchParams = {
+      city: String(city),
+      checkIn: String(checkIn),
       checkOut: String(checkOut),
-      adults:   Number(guests),
-    });
+      adults: Number(guests),
+    };
 
-    // Apply margin to all prices
-    const withMargin = hotels.map(h => ({
-      ...h,
-      minPrice: Math.ceil(h.minPrice * marginMultiplier),
-      rooms: (h.rooms || []).map((r: any) => ({
-        ...r,
-        pricePerNight: Math.ceil(r.pricePerNight * marginMultiplier),
-      })),
+    // Get effective margin based on user
+    const userId = (req as any).user?.id;
+    const margin = await getEffectiveMargin(userId, 'hotel');
+
+    const hotels = await searchAmadeusHotels(searchParams);
+
+    // Apply margin to all prices and save actual prices
+    const withMargin = await Promise.all(hotels.map(async (h: any) => {
+      const actualMinPrice = h.minPrice;
+      const { finalPrice: finalMinPrice, marginApplied } = calculatePriceWithMargin(actualMinPrice, margin);
+
+      // Save actual price to LivePrice table
+      saveLivePrice({
+        type: 'hotel',
+        externalId: h.id || `amadeus-${h.name}`,
+        source: 'amadeus',
+        searchParams,
+        actualPrice: actualMinPrice,
+        marginPercent: margin.method === 'percent' ? margin.percent : 0,
+        currency: 'INR',
+        ttlMinutes: 60,
+      }).catch(err => console.error('Failed to save live price:', err));
+
+      return {
+        ...h,
+        actualMinPrice,
+        minPrice: finalMinPrice,
+        marginApplied,
+        marginType: margin.type,
+        marginMethod: margin.method,
+        rooms: (h.rooms || []).map((r: any) => {
+          const actualRoomPrice = r.pricePerNight;
+          const { finalPrice: finalRoomPrice, marginApplied: roomMarginApplied } = calculatePriceWithMargin(actualRoomPrice, margin);
+          return {
+            ...r,
+            actualPrice: actualRoomPrice,
+            pricePerNight: finalRoomPrice,
+            marginApplied: roomMarginApplied,
+          };
+        }),
+      };
     }));
 
     res.status(200).json(withMargin);

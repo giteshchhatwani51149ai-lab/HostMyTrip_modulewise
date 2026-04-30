@@ -69,3 +69,32 @@ export const capturePayment = async (orderID: string) => {
 
   return response.data;
 };
+
+/**
+ * Refund a captured payment.
+ * @param captureId — the PayPal capture id (NOT the order id)
+ * @param amount    — refund amount (full capture refunded if omitted)
+ * @param currency  — ISO 4217 currency code (default INR)
+ * @returns         — PayPal refund object including `id` and `status`
+ */
+export const refundCapture = async (
+  captureId: string,
+  amount?: number,
+  currency = 'INR',
+  noteToPayer = 'Refund processed by HostMyTrip',
+) => {
+  const accessToken = await generateAccessToken();
+  const url = `${PAYPAL_API}/v2/payments/captures/${captureId}/refund`;
+  const body: any = { note_to_payer: noteToPayer };
+  if (amount !== undefined) {
+    body.amount = { value: Number(amount).toFixed(2), currency_code: currency };
+  }
+  const response = await axios.post(url, body, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+  });
+  return response.data; // { id, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', ... }
+};

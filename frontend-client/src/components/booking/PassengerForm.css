@@ -1,0 +1,205 @@
+/* ── Wrapper ──────────────────────────────────────────────────── */
+.pf-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+  font-family: inherit;
+}
+
+/* ── Step progress ────────────────────────────────────────────── */
+.pf-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 32px;
+}
+.pf-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+}
+.pf-step-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  background: var(--bg-2);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+.pf-step-active .pf-step-circle {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(255,107,0,0.15);
+}
+.pf-step-done .pf-step-circle {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+.pf-step-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 500;
+  text-align: center;
+}
+.pf-step-active .pf-step-label { color: var(--primary); font-weight: 700; }
+.pf-step-done  .pf-step-label  { color: #10b981; }
+.pf-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin-bottom: 18px;
+  min-width: 40px;
+}
+.pf-step-line-done { background: #10b981; }
+
+/* ── Header ───────────────────────────────────────────────────── */
+.pf-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+.pf-title   { font-size: 20px; font-weight: 800; }
+.pf-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 4px;
+}
+
+/* ── Card list ────────────────────────────────────────────────── */
+.pf-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Passenger card ───────────────────────────────────────────── */
+.pf-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color 0.2s;
+  overflow: visible;
+}
+.pf-card:focus-within { border-color: var(--primary); }
+
+.pf-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg-2);
+  border-radius: 14px 14px 0 0;
+}
+.pf-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pf-type-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 20px; letter-spacing: 0.05em;
+}
+.pf-type-adult  { background: rgba(255,107,0,0.12); color: var(--primary); }
+.pf-type-child  { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.pf-type-infant { background: rgba(16,185,129,0.12); color: #10b981; }
+.pf-card-label  { font-size: 14px; font-weight: 700; color: var(--text); }
+.pf-valid-tick  { color: #10b981; display: flex; align-items: center; }
+
+.pf-card-actions { display: flex; align-items: center; gap: 8px; }
+.pf-copy-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--primary);
+  background: rgba(255,107,0,0.08); border: 1px solid rgba(255,107,0,0.2);
+  padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  transition: background 0.2s;
+}
+.pf-copy-btn:hover { background: rgba(255,107,0,0.15); }
+.pf-collapse-btn {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; padding: 2px;
+}
+
+/* ── Card body (form) ─────────────────────────────────────────── */
+.pf-card-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.pf-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.pf-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+.pf-field-sm { flex: 0 0 90px; min-width: 80px; }
+
+.pf-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.pf-req { color: var(--primary); }
+
+.pf-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.pf-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,0,0.1); }
+.pf-input.pf-error { border-color: #ef4444; }
+.pf-input.pf-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+select.pf-input { cursor: pointer; }
+
+.pf-err {
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.pf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.pf-progress-text { font-size: 13px; color: var(--text-muted); }
+
+.pf-continue-btn {
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  cursor: not-allowed;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  transition: all 0.2s;
+}
+.pf-continue-active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--primary-glow);
+}
+.pf-continue-active:hover { transform: translateY(-1px); }
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .pf-row { flex-direction: column; gap: 10px; }
+  .pf-field-sm { flex: 1; }
+  .pf-footer { flex-direction: column; gap: 12px; align-items: stretch; }
+  .pf-continue-btn { width: 100%; text-align: center; }
+}
