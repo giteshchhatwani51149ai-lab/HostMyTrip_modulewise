@@ -56,18 +56,18 @@ app.use(globalLimiter);
 
 // Granular per-route limiters (mounted *before* the matching router)
 app.use('/api/auth/forgot-password', passwordResetLimiter);
-app.use('/api/auth/reset-password',  passwordResetLimiter);
-app.use('/api/auth/verify-email',    passwordResetLimiter);
-app.use('/api/auth',                 authLimiter);
+app.use('/api/auth/reset-password', passwordResetLimiter);
+app.use('/api/auth/verify-email', passwordResetLimiter);
+app.use('/api/auth', authLimiter);
 
-app.use('/api/payments',             paymentLimiter);
-app.use('/api/bookings',             paymentLimiter);
+app.use('/api/payments', paymentLimiter);
+app.use('/api/bookings', paymentLimiter);
 
-app.use('/api/search',               searchLimiter);
-app.use('/api/hotels',               searchLimiter);
-app.use('/api/flights',              searchLimiter);
+app.use('/api/search', searchLimiter);
+app.use('/api/hotels', searchLimiter);
+app.use('/api/flights', searchLimiter);
 
-app.use('/api/webhooks',             webhookLimiter);
+app.use('/api/webhooks', webhookLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -95,22 +95,49 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    console.log('🔄 Attempting to connect to database...');
+    console.log('📍 Database dialect:', sequelize.getDialect());
+
     await sequelize.authenticate();
     console.log('✅ Database connected successfully.');
-    // Skip sync() — tables are already created by the seed script.
-    // sequelize.sync() on MSSQL triggers sys.sp_helpindex which times out.
-    console.log('✅ Skipping sync — tables managed by seed script.');
-    await ensureBookingColumns();
-    await ensureAuditLogTable();
-    await ensureCorporateColumns();
+
+    // Use sync() to create tables if they don't exist (PostgreSQL)
+    // Skip the MSSQL-specific ensure functions for now
+    const isProduction = process.env.NODE_ENV === 'production';
+    const dialect = sequelize.getDialect();
+
+    if (dialect === 'postgres') {
+      console.log('🔄 Running Sequelize sync for PostgreSQL...');
+      await sequelize.sync({ alter: false }); // Create tables if they don't exist
+      console.log('✅ PostgreSQL tables synced.');
+    } else {
+      console.log('✅ Skipping sync — using MSSQL seed script approach.');
+      await ensureBookingColumns();
+      await ensureAuditLogTable();
+      await ensureCorporateColumns();
+    }
+
     startEmailScheduler();
+
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🗄️  Database: ${dialect}`);
     });
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error);
+    console.error('❌ Fatal error during server startup:');
+    console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('Error message:', error instanceof Error ? error.message : error);
+    console.error('Full error:', error);
     process.exit(1);
   }
 };
+
+// Catch unhandled rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Rejection at:', promise);
+  console.error('🚨 Reason:', reason);
+  process.exit(1);
+});
 
 startServer();
