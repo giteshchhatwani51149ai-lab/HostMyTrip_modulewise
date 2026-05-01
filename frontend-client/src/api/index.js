@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api' });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -166,7 +166,7 @@ export const adminAPI = {
   confirmBooking:    (id)         => api.post(`/admin/bookings/${id}/confirm`),
   addNote:           (id, text)   => api.post(`/admin/bookings/${id}/notes`, { text }),
   resendEmail:       (id)         => api.post(`/admin/bookings/${id}/resend-email`),
-  getInvoiceUrl:     (id)         => `http://localhost:5000/api/admin/bookings/${id}/invoice`,
+  getInvoiceUrl:     (id)         => `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/bookings/${id}/invoice`,
   getCorporates:     ()           => api.get('/corporates'),
   createCorporate:   (data)       => api.post('/corporates', data),
   updateCorporate:   (id, data)   => api.put(`/corporates/${id}`, data),
