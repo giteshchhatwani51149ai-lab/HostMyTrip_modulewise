@@ -23,6 +23,7 @@ import passport from './config/passport';
 import { ensureBookingColumns } from './utils/ensureBookingColumns';
 import { ensureAuditLogTable } from './utils/ensureAuditLogTable';
 import { ensureCorporateColumns } from './utils/ensureCorporateColumns';
+import { ensureAdminUser } from './utils/ensureAdminUser';
 import webhookRoutes from './routes/webhookRoutes';
 import cronRoutes from './routes/cronRoutes';
 import { startEmailScheduler } from './services/emailScheduler';
@@ -116,6 +117,9 @@ const startServer = async () => {
       await ensureAuditLogTable();
       await ensureCorporateColumns();
     }
+
+    // Automatically create admin user if env vars are provided
+    await ensureAdminUser();
 
     startEmailScheduler();
 

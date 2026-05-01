@@ -36,7 +36,7 @@ Repeat Step 2 but:
 
 After backend deploys, you must create an admin user to access the admin portal:
 
-**Option A: Via Render Shell (Recommended)**
+**Option A: Via Render Shell (Standard)**
 1. Go to [render.com](https://render.com) → Your `hostmytrip-api` service
 2. Click **Shell** tab (opens terminal)
 3. Run:
@@ -44,7 +44,15 @@ After backend deploys, you must create an admin user to access the admin portal:
 node dist/scripts/createAdmin.js admin@yourdomain.com YourStrongPassword123
 ```
 
-**Option B: Via CLI (Local connected to prod DB)**
+**Option B: Auto-Create (Easiest if Shell is unavailable)**
+1. Go to **Render Dashboard** → Your Web Service → **Environment**
+2. Add these variables:
+   - `INITIAL_ADMIN_EMAIL` = `admin@example.com`
+   - `INITIAL_ADMIN_PASSWORD` = `YourStrongPassword123`
+3. Click **Save Changes**.
+4. Render will restart the server and automatically create the admin user.
+
+**Option C: Via CLI (Local connected to prod DB)**
 ```bash
 cd backend
 npm run build
